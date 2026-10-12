@@ -52,6 +52,17 @@ header.top{display:flex;align-items:center;justify-content:space-between;min-hei
 .gb-name{font-weight:700;font-size:var(--fs-sm);display:inline-flex;align-items:center;gap:6px}
 .gb-name::after{content:"";width:6px;height:6px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg) translateY(-2px)}
 .char-grid.game-grid{grid-template-columns:1fr}
+/* 最近使ったキャラ：全キャラ一覧とは別のパネル・別の形 */
+.recent-panel{background:var(--win-soft);border-radius:var(--r-m);padding:var(--s3);display:flex;flex-direction:column;gap:var(--s2)}
+.recent-head{margin:0;font-size:var(--fs-xs);font-weight:700;letter-spacing:.06em;color:var(--win);display:flex;align-items:center;gap:6px}
+.recent-head svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.recent-chips{display:flex;gap:var(--s2);overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.recent-chips::-webkit-scrollbar{display:none}
+.recent-chip{flex:none;min-height:var(--tap);background:var(--bg-1);border:0;border-radius:999px;padding:0 var(--s4);font-size:var(--fs-sm);font-weight:700;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--win);transition:var(--press);white-space:nowrap}
+.recent-chip:active{transform:scale(.95)}
+.recent-chip[aria-current="true"]{background:var(--win);color:#fff}
+.all-head{margin:var(--s3) 0 0;padding-top:var(--s4);border-top:1px solid rgba(255,255,255,.08);font-size:var(--fs-xs);font-weight:700;letter-spacing:.06em;color:var(--muted);display:flex;align-items:baseline;gap:var(--s2)}
+.all-head .num{color:var(--faint)}
 .char-grid .game-opt{min-height:64px;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;align-items:center;text-align:left;padding:var(--s2) var(--s4);white-space:normal}
 .game-opt .gs{font-family:var(--font-display);font-weight:400;font-size:var(--fs-md)}
 .game-opt .gn{grid-row:2;font-size:var(--fs-xs);color:var(--muted);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -610,7 +621,7 @@ function openSheet(target){
   const field=target==='my'?'my':'opp';const recent=[];
   const G=gameRecs();
   for(let i=G.length-1;i>=0&&recent.length<6;i--){const c=G[i][field];if(c&&!recent.includes(c)&&st.chars.includes(c))recent.push(c)}
-  $('sheetRecent').innerHTML=recent.length?`<div class="label" style="margin-bottom:6px">最近</div><div class="char-grid">${recent.map(c=>`<button type="button" data-char="${esc(c)}" aria-current="${c===cur}">${esc(c)}</button>`).join('')}</div>`:'';
+  $('sheetRecent').innerHTML=recent.length?`<section class="recent-panel"><h3 class="recent-head"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>最近使ったキャラ</h3><div class="recent-chips">${recent.map(c=>`<button type="button" class="recent-chip" data-char="${esc(c)}" aria-current="${c===cur}">${esc(c)}</button>`).join('')}</div></section><h3 class="all-head">全キャラ<span class="num">${st.chars.length}</span></h3>`:'';
   $('sheetGrid').innerHTML=st.chars.map(c=>`<button type="button" data-char="${esc(c)}" aria-current="${c===cur}">${esc(c)}</button>`).join('');
   $('sheetBg').hidden=false;
 }
