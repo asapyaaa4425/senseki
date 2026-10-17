@@ -98,6 +98,7 @@ header.top .sub{font-size:var(--fs-xs);color:var(--faint)}
 .cat-know{--cc:#a98bff;--cc-soft:rgba(169,139,255,.16);--cc-mid:rgba(169,139,255,.3)}
 .cat-judge{--cc:#33d1b4;--cc-soft:rgba(51,209,180,.15);--cc-mid:rgba(51,209,180,.28)}
 .cat-mind{--cc:#ff74b8;--cc-soft:rgba(255,116,184,.16);--cc-mid:rgba(255,116,184,.3)}
+.cat-attack{--cc:#b8e05a;--cc-soft:rgba(184,224,90,.15);--cc-mid:rgba(184,224,90,.28)}
 .cat-other{--cc:#a3aac2;--cc-soft:rgba(163,170,194,.14);--cc-mid:rgba(163,170,194,.26)}
 .cdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cc);flex:none}
 
@@ -133,6 +134,37 @@ header.top .sub{font-size:var(--fs-xs);color:var(--faint)}
 .minus .chip.fcard[aria-pressed="true"] .fd{color:var(--ink)}
 .minus .chip.fcard[aria-pressed="true"]::after{content:"✓";position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;background:var(--cc);color:var(--bg-0);font-size:11px;font-weight:700;display:grid;place-items:center;line-height:1}
 .need{animation:needPulse .5s ease 2}
+/* 主因・上限 */
+.minus .chip.fcard[data-main="true"]::after{content:"★ 主因";width:auto;padding:0 7px;border-radius:999px;font-size:10px;letter-spacing:.02em}
+.fgroups.full .fcard[aria-pressed="false"]{opacity:.4}
+.picked{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center}
+.picked:empty{display:none}
+.pk-count{font-size:var(--fs-xs);color:var(--muted);font-weight:700}
+.pk{min-height:36px;border:0;border-radius:999px;padding:0 var(--s3);background:var(--cc-soft);color:var(--ink);font-size:var(--fs-xs);font-weight:700;box-shadow:inset 0 0 0 1px var(--cc);transition:var(--press)}
+.pk.main{background:var(--cc);color:var(--bg-0)}
+.pk:active{transform:scale(.95)}
+.pk-hint{font-size:11px;color:var(--faint)}
+/* 問題の技 */
+.memo-block label .hint{font-weight:500;letter-spacing:0;color:var(--faint);margin-left:var(--s2)}
+.move-sugg{display:flex;gap:var(--s2);overflow-x:auto;scrollbar-width:none}
+.move-sugg:empty{display:none}
+.move-sugg::-webkit-scrollbar{display:none}
+.move-chip{flex:none;min-height:var(--tap);border:0;border-radius:999px;padding:0 var(--s3);background:var(--bg-1);box-shadow:inset 0 0 0 1px rgba(169,139,255,.5);font-size:var(--fs-sm);display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:var(--press)}
+.move-chip .num{font-size:var(--fs-xs);color:var(--faint)}
+.move-chip:active{transform:scale(.95)}
+/* 連敗 */
+.streak{background:var(--lose-soft);border-radius:var(--r-m);padding:var(--s3);display:flex;flex-direction:column;gap:2px;font-size:var(--fs-xs);color:var(--muted)}
+.streak b{color:var(--lose);font-size:var(--fs-sm)}
+/* 問題の技ランキング */
+.mvlist{display:flex;flex-direction:column;gap:var(--s2)}
+.mvrow{background:var(--bg-1);border-radius:var(--r-m);box-shadow:var(--shadow-1);padding:var(--s3);display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:var(--s2) var(--s3);align-items:center}
+.mvrow .rk{font-size:var(--fs-xs);color:var(--faint);width:18px}
+.mvname{display:flex;align-items:baseline;gap:var(--s2);min-width:0}
+.mvname b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mvname small{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
+.mvn{font-size:var(--fs-xs);color:var(--muted)}
+.mvn b{font-size:var(--fs-md);color:var(--ink)}
+.mvrow .lbar{grid-column:2/-1}
 @keyframes needPulse{50%{color:var(--lose)}}
 
 /* ── メモ（常時表示） ── */
@@ -325,6 +357,7 @@ img{max-width:100%}
   </header>
 
   <main id="view-record" role="tabpanel">
+    <div class="streak" id="streak" hidden></div>
     <section class="vs-card" id="vsCard">
       <div class="matchup">
         <button class="pick" id="pickMy" type="button"><span class="who">自分</span><span class="name" id="myName">—</span></button>
@@ -339,9 +372,16 @@ img{max-width:100%}
     </section>
 
     <section class="tagset minus">
-      <h2 id="minusHead">敗因 <span class="hint">負けたときは1つ以上選択（複数可）</span></h2>
+      <h2 id="minusHead">敗因 <span class="hint">1〜3つ選択。最初に選んだものが★主因</span></h2>
+      <div class="picked" id="picked"></div>
       <div class="fgroups" id="minusChips"></div>
     </section>
+    <div class="memo-block">
+      <label for="moveInput">問題の技（任意）<span class="hint">回答がなかった相手の技</span></label>
+      <input class="memo move-input" id="moveInput" type="text" placeholder="例：虚空拳" autocomplete="off" list="moveList">
+      <datalist id="moveList"></datalist>
+      <div class="move-sugg" id="moveSugg"></div>
+    </div>
     <div class="memo-block">
       <label for="memo">メモ（任意）</label>
       <textarea class="memo" id="memo" placeholder="具体的な詳細やアドバイスを記録…"></textarea>
@@ -365,7 +405,7 @@ img{max-width:100%}
     </div>
     <div class="card">
       <h2>敗因</h2>
-      <p>1行に1つ。初期の20項目は分類・色・説明つきで表示されます。自分で追加した敗因は「その他」（灰色）に入ります。</p>
+      <p>1行に1つ。初期の26項目は分類・色・説明つきで表示されます。自分で追加した敗因は「その他」（灰色）に入ります。</p>
       <textarea id="setMinus" aria-label="敗因" style="min-height:220px"></textarea>
       <div class="row"><label for="setRecent">集計の「直近」</label><input id="setRecent" type="number" min="3" max="50"><span>戦</span></div>
       <div class="row"><button class="btn-sm primary" id="saveSettings" type="button">設定を保存</button></div>
@@ -421,12 +461,13 @@ const DEF_PLUS=["対空できた","差し返し","確反取れた","起き攻め
 /* 敗因の分類 */
 const CATS=[
   {id:'exec',name:'実行',sub:'操作・反応の精度'},
-  {id:'know',name:'知識',sub:'キャラ・システム理解'},
-  {id:'judge',name:'判断',sub:'立ち回り・守り'},
+  {id:'judge',name:'判断・守り',sub:'守り・立ち回り'},
+  {id:'attack',name:'判断・攻め',sub:'攻めの択・攻め方'},
   {id:'mind',name:'メンタル',sub:'適応・心理'},
+  {id:'know',name:'知識',sub:'キャラ対策・システム理解'},
   {id:'other',name:'その他',sub:'自分で追加した敗因'}
 ];
-/* 敗因20項目：名前・説明・分類・練習のヒント */
+/* 敗因26項目：名前・説明・分類・練習のヒント */
 const FACTORS=[
   ['対空失敗','相手のジャンプを落とせなかった','exec','相手の飛びを録画再生し、対空だけを10回連続で出せるまでトレモで練習。'],
   ['確反逃し','反撃確定なのに技が出せなかった','exec','よく食らう技をメモし、ガード後に確反を出す動作だけを反復して反射にする。'],
@@ -434,21 +475,29 @@ const FACTORS=[
   ['操作ミス','コマンドミスや意図しない技','exec','暴発した場面をメモし、入力の仕方やボタン配置を見直す。'],
   ['起き攻めミス','技の重ねやセットプレイの失敗','exec','主力の起き攻めを2パターンに絞り、トレモで重ねのタイミングを体に入れる。'],
   ['ガードミス','中下段や切り替えのミス','exec','中段・めくりなど崩しの多い技をリプレイで確認し、見てから反応できるか試す。'],
-  ['わからん殺し','技の性能や対処法を知らなかった','know','負けた技の名前をメモし、フレームと対処法を調べてトレモで再現する。'],
-  ['セットプレイ対策不足','特定キャラの連携が抜けられなかった','know','相手キャラの定番連携をトレモで録画し、抜け方を1つ決めておく。'],
-  ['確反の知識不足','どの技に反撃が入るか不明','know','この相手キャラの「ガードされて不利な技」を3つだけ覚える。'],
-  ['システム理解不足','インパクト等の使い所の誤り','know','システム技への返し方と、自分が使うべき場面をトレモで確認する。'],
   ['無謀な暴れ','相手が有利な時にボタンを押した','judge','相手の有利フレーム技を覚え、その後はガードかバックステップを選ぶ。'],
   ['グラップの選択ミス','投げ抜け・シミーの読み合いで選択を誤った','judge','起き上がりや固められた場面で、グラップ・ガード・バクステ・無敵技を散らす。投げとシミーのどちらに負けたかをメモに残す。'],
-  ['画面端の守備','端で凌ぎきれず押し切られた','judge','端での脱出手段（無敵技・ガード後の切り返し）を整理し、使う場面を決める。'],
-  ['安易な飛び','無計画に飛んで落とされた','judge','飛ぶ前に「相手のゲージ・対空の構え」を確認する。飛びは1ラウンド数回まで。'],
+  ['画面端の守備','端で凌ぎきれず押し切られた','judge','よく受ける端の連携をレコーディングし、ガーキャン等で返す場面と、我慢してガードする場面を分けておく。'],
+  ['ライン管理','中央でジリジリ下がり、端を背負わされた','judge','下がる前に前歩き・牽制で押し返す意識を持つ。画面の半分を越えて下がったら、一度何で押し返すかを決める。'],
+  ['対空意識不足','飛びを警戒しておらず通した','judge','相手が飛びやすい距離を覚え、その距離では対空を準備しておく。飛びを通した回数をメモに残す。'],
+  ['開幕負け','開幕の読み合いや距離で後手に回った','judge','相手キャラごとに開幕の行動を1つ決めておく（下がる・ガード・牽制など）。開幕で負けた行動をメモする。'],
   ['立ち回り負け','差し合いで一方的に触られた','judge','自分の主力牽制の間合いを確認し、相手の牽制を差し返す練習をする。'],
   ['リソース管理','ゲージ不足や使い所のミス','judge','ゲージを使う場面を事前に決めておく（例：〇〇の確反用に必ず残す）。'],
+  ['攻め継続の判断ミス','不利なのに押し続けて割り込まれた','attack','自分の技の有利・不利を確認し、不利な技の後はガードに戻る。押したくなる場面をメモに残す。'],
+  ['崩しの択が単調','打撃・投げ・シミーが偏り読まれた','attack','固めから出す択を3つ（打撃・投げ・様子見）決め、同じ択を2回続けないよう意識する。'],
+  ['起き攻めの択ミス','重ねる択やタイミングの選び方を誤った','attack','相手の起き上がりの癖（無敵技・グラップ・ガード）をメモし、それに勝てる択を1つ用意する。'],
+  ['安易な飛び','無計画に飛んで落とされた','attack','飛ぶ前に「相手のゲージ・対空の構え」を確認する。飛びは1ラウンド数回まで。'],
+  ['リターンの取り損ね','端運びやゲージ使用でダメージを取り逃した','attack','ヒット確認後の最大リターン（端運び・ゲージ使用）を場面別に1つずつ決めておく。'],
+  ['攻め急ぎ','リード時や残り体力わずかで無理に攻めた','attack','体力リード時は相手に攻めさせる意識を持つ。トドメはまず確実な行動から。'],
   ['パニック/ぶっぱ','焦って無敵技や操作停止','mind','体力リードされた時ほど一呼吸おいてガード。ぶっぱした場面をメモに残す。'],
   ['対応不足/手癖','相手の行動に適応できなかった','mind','同じ負け方を2回したら、次は必ず違う選択肢を試すと決めておく。'],
+  ['我慢できず手を出した','楽になりたくて固めや暴れを急いだ','mind','「楽になりたい」と感じたら1回ガードか様子見を挟む。勝った試合は我慢できたときが多いことを思い出す。'],
   ['行動の偏り','同じ行動を繰り返して読まれた','mind','起き上がり・ガード後など場面ごとに選択肢を2つ以上用意して散らす。'],
-  ['読み負け・運','最後のジャンケンや読み合いの負け','mind','内容が悪くなければ引きずらない。何度も続くなら「行動の偏り」を疑う。']
+  ['読み負け・運','最後のジャンケンや読み合いの負け','mind','内容が悪くなければ引きずらない。何度も続くなら「行動の偏り」を疑う。'],
+  ['回答を持っていない','特定の技・連携への対処が決まっていなかった','know','回答がなかった技を「問題の技」に残し、多い順にフレームと対処法を調べてトレモで回答を1つずつ決める。']
 ];
+/* 以前の知識4項目 → 「知識不足」にまとめる */
+const KNOW_OLD=['わからん殺し','セットプレイ対策不足','確反の知識不足','システム理解不足'];
 const FMAP={};FACTORS.forEach(([n,d,c,h])=>FMAP[n]={d,c,h});
 const DEF_MINUS=FACTORS.map(f=>f[0]);
 /* 以前の課題タグ → 新しい敗因への対応 */
@@ -465,22 +514,25 @@ function sampleRecords(){
   const opps=[["ケン",.45],["ルーク",.55],["ジュリ",.62],["ザンギエフ",.38],["豪鬼",.5],["マリーザ",.6]];
   const players=["ケンばっか","まりーざ使い","","","",""];
   const base={"確反逃し":.3,"コンボミス":.18,"無謀な暴れ":.2,"パニック/ぶっぱ":.14,"対空失敗":.14,"安易な飛び":.1};
-  const boost={"ケン":{"対空失敗":.35,"画面端の守備":.2},"ルーク":{"立ち回り負け":.4},"ザンギエフ":{"グラップの選択ミス":.6,"画面端の守備":.3},"豪鬼":{"わからん殺し":.4,"セットプレイ対策不足":.35},"ジュリ":{"確反の知識不足":.3},"マリーザ":{"システム理解不足":.25}};
-  const memos={"確反逃し":"ガード後に何も出せず。確反の練習","グラップの選択ミス":"起き上がりグラップをシミーで狩られた","わからん殺し":"豪鬼の空中竜巻の後どっちに落ちる？要確認","対空失敗":"ジャンプ見えてたのに手が出なかった","コンボミス":"端のコンボ最後が繋がらない","立ち回り負け":"中足の間合いでずっと負けてる"};
+  const boost={"ケン":{"対空失敗":.35,"画面端の守備":.2},"ルーク":{"立ち回り負け":.4},"ザンギエフ":{"グラップの選択ミス":.6,"画面端の守備":.3},"豪鬼":{"回答を持っていない":.5,"攻め継続の判断ミス":.2},"ジュリ":{"崩しの択が単調":.3},"マリーザ":{"リターンの取り損ね":.25,"攻め急ぎ":.2}};
+  const memos={"確反逃し":"ガード後に何も出せず。確反の練習","グラップの選択ミス":"起き上がりグラップをシミーで狩られた","回答を持っていない":"空中竜巻の後どっちに落ちる？要確認","攻め継続の判断ミス":"有利だと思って押したら割り込まれた","対空失敗":"ジャンプ見えてたのに手が出なかった","コンボミス":"端のコンボ最後が繋がらない","立ち回り負け":"中足の間合いでずっと負けてる"};
+  const moves={"ケン":["迅雷脚","竜巻旋風脚"],"ルーク":["フラッシュナックル"],"ジュリ":["風破刃","歳破衝"],"ザンギエフ":["スクリューパイルドライバー"],"豪鬼":["空中竜巻","阿修羅閃空"],"マリーザ":["ファランクス"]};
   const out=[];const now=Date.now();
   for(let i=0;i<42;i++){
     const oi=Math.floor(rnd()*opps.length),[opp,p]=opps[oi];
-    const W=rnd()<p;const plus=[],minus=[];let memo='';
+    const W=rnd()<p;const plus=[];let minus=[];let memo='',move='';
     if(!W){
-      DEF_MINUS.forEach(t=>{const pr=(boost[opp]&&boost[opp][t])||base[t]||.03;if(rnd()<pr)minus.push(t)});
+      DEF_MINUS.forEach(t=>{const pr=(boost[opp]&&boost[opp][t])||base[t]||.02;if(rnd()<pr)minus.push(t)});
       if(!minus.length)minus.push("読み負け・運");
+      minus=minus.slice(0,3);
       const m=minus.find(t=>memos[t]);if(m&&rnd()<.5)memo=memos[m];
+      if(minus.includes("回答を持っていない")||rnd()<.25){const mv=moves[opp];move=mv[Math.floor(rnd()*mv.length)]}
     }
-    out.push({id:'s'+i,t:now-(42-i)*1000*60*47-Math.floor(rnd()*600000),game:'sf6',my:"リュウ",opp,player:players[oi],result:W?'W':'L',plus,minus,memo,sample:true});
+    out.push({id:'s'+i,t:now-(42-i)*1000*60*47-Math.floor(rnd()*600000),game:'sf6',my:"リュウ",opp,player:players[oi],result:W?'W':'L',plus,minus,memo,move,sample:true});
   }
   return out;
 }
-function defaults(){return{settings:{game:'sf6',chars:DEF_CHARS.slice(),charsByGame:{},picks:{},plus:DEF_PLUS.slice(),minus:DEF_MINUS.slice(),recentN:10,myChar:"リュウ",oppChar:"ケン",player:"",v:3},records:sampleRecords()}}
+function defaults(){return{settings:{game:'sf6',chars:DEF_CHARS.slice(),charsByGame:{},picks:{},plus:DEF_PLUS.slice(),minus:DEF_MINUS.slice(),recentN:10,myChar:"リュウ",oppChar:"ケン",player:"",v:5},records:sampleRecords()}}
 let readFailed=false;
 function load(){
   let raw=null;
@@ -500,8 +552,19 @@ function save(){
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 
 /* 以前のデータを新しい敗因リストに合わせる（1回だけ） */
-function migrate(){
-  migrate2();
+function migrate(){migrate2();migrate3();migrate4();migrate5()}
+/* v5：「知識不足」→「回答を持っていない」、守り・メンタルの項目追加 */
+function migrate5(){
+  const st=S.settings;if(st.v>=5)return;
+  const ren=m=>m==='知識不足'?'回答を持っていない':m;
+  const known=new Set(DEF_MINUS.concat(KNOW_OLD,['知識不足']));
+  const extras=st.minus.map(ren).filter(m=>!known.has(m));
+  st.minus=DEF_MINUS.concat(extras);
+  S.records.forEach(r=>{r.minus=[...new Set((r.minus||[]).map(ren))]});
+  if(S.records.length&&S.records.every(r=>r.sample))S.records=sampleRecords();
+  st.v=5;save();
+}
+function migrate3(){
   /* v3：タイトル別キャラ・「投げられすぎ」→「グラップの選択ミス」 */
   if(S.settings.v>=3)return;
   const st=S.settings;
@@ -509,6 +572,17 @@ function migrate(){
   st.minus=[...new Set(st.minus.map(m=>m==='投げられすぎ'?'グラップの選択ミス':m))];
   S.records.forEach(r=>{if(!r.game)r.game='sf6';r.minus=[...new Set((r.minus||[]).map(m=>m==='投げられすぎ'?'グラップの選択ミス':m))]});
   st.v=3;save();
+}
+/* v4：知識4項目を「知識不足」に統合し、攻めの項目を追加 */
+function migrate4(){
+  const st=S.settings;if(st.v>=4)return;
+  const toNew=m=>KNOW_OLD.includes(m)?'知識不足':m;
+  const known=new Set(DEF_MINUS.concat(KNOW_OLD));
+  const extras=st.minus.filter(m=>!known.has(m));
+  st.minus=DEF_MINUS.concat(extras);
+  S.records.forEach(r=>{r.minus=[...new Set((r.minus||[]).map(toNew))]});
+  if(S.records.length&&S.records.every(r=>r.sample))S.records=sampleRecords();
+  st.v=4;save();
 }
 function migrate2(){
   if(S.settings.v>=2)return;
@@ -583,11 +657,42 @@ function renderRecord(){
       +'</div></div>';
   });
   $('minusChips').innerHTML=g;
+  updateMinusUI();
+  /* 問題の技：この相手キャラで過去に入れた技を候補に出す */
+  const mv={};G.filter(r=>r.opp===st.oppChar&&r.move).forEach(r=>mv[r.move]=(mv[r.move]||0)+1);
+  const mvs=Object.entries(mv).sort((a,b)=>b[1]-a[1]);
+  $('moveList').innerHTML=mvs.map(([m])=>`<option value="${esc(m)}">`).join('');
+  $('moveSugg').innerHTML=mvs.slice(0,8).map(([m,c])=>`<button type="button" class="move-chip" data-move="${esc(m)}">${esc(m)}<span class="num">${c}</span></button>`).join('');
+  /* 同じ日の連敗 */
+  const todayL=real.filter(r=>r.t>=today0()).sort((a,b)=>a.t-b.t);let streak=0;
+  for(let i=todayL.length-1;i>=0&&todayL[i].result==='L';i--)streak++;
+  const sb=$('streak');sb.hidden=streak<3;
+  if(streak>=3)sb.innerHTML=`<b class="num">${streak}連敗中</b><span>一度休憩するか、トレモで気になった技を確認しませんか。</span>`;
   $('topSub').textContent=real.length?`${real.length}戦記録済み`:'サンプル表示中';
 }
+const MAX_MINUS=3;
+function updateMinusUI(){
+  const order=[...sel.minus];
+  document.querySelectorAll('.fcard').forEach(c=>{
+    const t=c.dataset.tag;c.setAttribute('aria-pressed',String(sel.minus.has(t)));
+    c.dataset.main=String(order[0]===t);
+  });
+  const fg=$('minusChips');if(fg)fg.classList.toggle('full',order.length>=MAX_MINUS);
+  $('picked').innerHTML=order.length?`<span class="pk-count num">${order.length}/${MAX_MINUS}</span>`+order.map((t,i)=>`<button type="button" class="pk cat-${catOf(t)}${i===0?' main':''}" data-pick="${esc(t)}">${i===0?'★ ':''}${esc(t)}</button>`).join('')+(order.length>1?'<span class="pk-hint">タップで主因に</span>':''):'';
+}
 document.addEventListener('click',e=>{
+  const pk=e.target.closest('[data-pick]');
+  if(pk){const t=pk.dataset.pick;sel.minus=new Set([t,...[...sel.minus].filter(x=>x!==t)]);updateMinusUI();return}
+  const mc=e.target.closest('[data-move]');
+  if(mc){$('moveInput').value=mc.dataset.move;return}
   const c=e.target.closest('.chip');if(!c)return;
-  const k=c.dataset.kind,t=c.dataset.tag;sel[k].has(t)?sel[k].delete(t):sel[k].add(t);c.setAttribute('aria-pressed',String(sel[k].has(t)));
+  const k=c.dataset.kind,t=c.dataset.tag;
+  if(sel[k].has(t))sel[k].delete(t);
+  else{
+    if(k==='minus'&&sel.minus.size>=MAX_MINUS){toast(`敗因は${MAX_MINUS}つまでです`);return}
+    sel[k].add(t);
+  }
+  if(k==='minus')updateMinusUI();else c.setAttribute('aria-pressed',String(sel[k].has(t)));
 });
 $('player').addEventListener('change',()=>{S.settings.player=$('player').value.trim();save()});
 function register(result){
@@ -600,14 +705,14 @@ function register(result){
   }
   let removedSamples=null;
   if(S.records.some(r=>r.sample)){removedSamples=S.records.filter(r=>r.sample);S.records=S.records.filter(r=>!r.sample)}
-  const rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),t:Date.now(),game:st.game,my:st.myChar,opp:st.oppChar,player:st.player,result,plus:[...sel.plus],minus:[...sel.minus],memo:$('memo').value.trim()};
+  const rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),t:Date.now(),game:st.game,my:st.myChar,opp:st.oppChar,player:st.player,result,plus:[...sel.plus],minus:[...sel.minus],move:$('moveInput').value.trim(),memo:$('memo').value.trim()};
   S.records.push(rec);save();
-  sel={plus:new Set(),minus:new Set()};$('memo').value='';
+  sel={plus:new Set(),minus:new Set()};$('memo').value='';$('moveInput').value='';
   renderRecord();
   $('view-record').scrollTo({top:0,behavior:'smooth'});
   toast(`${result==='W'?'WIN':'LOSE'} を登録しました${removedSamples?'（サンプルは消去）':''}`,'取り消す',()=>{
     S.records=S.records.filter(r=>r.id!==rec.id);if(removedSamples)S.records=removedSamples.concat(S.records);
-    sel={plus:new Set(rec.plus),minus:new Set(rec.minus)};$('memo').value=rec.memo;save();renderRecord();
+    sel={plus:new Set(rec.plus),minus:new Set(rec.minus)};$('memo').value=rec.memo;$('moveInput').value=rec.move||'';save();renderRecord();
   });
 }
 $('btnWin').addEventListener('click',()=>register('W'));
@@ -718,8 +823,8 @@ function factorStats(losses,names){
       const d=pct(recent.filter(r=>r.minus.includes(n)).length,recent.length)-pct(older.filter(r=>r.minus.includes(n)).length,older.length);
       trend=d>=10?1:d<=-10?-1:0;
     }
-    return{n,count:hit.length,p:pct(hit.length,losses.length),opps,trend,memos:hit.filter(r=>r.memo).slice(-3).reverse()};
-  }).sort((a,b)=>b.count-a.count);
+    return{n,count:hit.length,main:hit.filter(r=>r.minus[0]===n).length,p:pct(hit.length,losses.length),opps,trend,memos:hit.filter(r=>r.memo).slice(-3).reverse()};
+  }).sort((a,b)=>b.count-a.count||b.main-a.main);
 }
 function trendLabel(t){return t>0?'<span class="trend-up">↑ 最近増えている</span>':t<0?'<span class="trend-down">↓ 改善傾向</span>':''}
 function fitemHTML(f,i,L){
@@ -727,7 +832,7 @@ function fitemHTML(f,i,L){
   let h=`<div class="fitem cat-${catOf(f.n)}"><button type="button" class="fhead" data-f="${esc(f.n)}" aria-expanded="${open}">
     <span class="rk">${i+1}</span><span class="fname" style="display:flex;align-items:center;gap:6px"><span class="cdot"></span>${esc(f.n)}</span><span class="fnum num"><b>${f.p}%</b> ${f.count}回</span>
     <span class="lbar"><span style="width:${f.p}%"></span></span>
-    <span class="fsub">${lossOpp==='__all'&&f.opps[0]?`<span>${esc(f.opps[0][0])}戦で最多（${f.opps[0][1]}回）</span>`:''}${trendLabel(f.trend)}</span></button>`;
+    <span class="fsub">${f.main?`<span>★主因 ${f.main}回</span>`:''}${lossOpp==='__all'&&f.opps[0]?`<span>${esc(f.opps[0][0])}戦で最多（${f.opps[0][1]}回）</span>`:''}${trendLabel(f.trend)}</span></button>`;
   if(open){
     h+='<div class="fbody">';
     if(info)h+=`<div class="tip">${esc(info.h)}</div>`;
@@ -736,6 +841,16 @@ function fitemHTML(f,i,L){
     h+='</div>';
   }
   return h+'</div>';
+}
+/* 問題の技ランキング：トレモで回答を決める順 */
+function moveRankHTML(losses){
+  const m={};
+  losses.filter(r=>r.move).forEach(r=>{const k=r.opp+'\u0000'+r.move;(m[k]=m[k]||{opp:r.opp,move:r.move,n:0}).n++});
+  const rows=Object.values(m).sort((a,b)=>b.n-a.n).slice(0,8);
+  let h=`<div class="label">問題の技ランキング ・ トレモで回答を決める順</div>`;
+  if(!rows.length)return h+`<p class="zero">負けたときに「問題の技」を入れると、ここに回答が必要な技が多い順に並びます。</p>`;
+  const max=rows[0].n;
+  return h+`<div class="mvlist">${rows.map((r,i)=>`<div class="mvrow"><span class="rk num">${i+1}</span><span class="mvname"><b>${esc(r.move)}</b><small>vs ${esc(r.opp)}</small></span><span class="mvn num"><b>${r.n}</b>敗</span><span class="lbar cat-know"><span style="width:${Math.round(r.n/max*100)}%;background:var(--cc)"></span></span></div>`).join('')}</div>`;
 }
 function lossHTML(recs,mys){
   const st=S.settings;
@@ -765,6 +880,7 @@ function lossHTML(recs,mys){
       <span class="cn"><span class="cdot"></span>${c.name}${c===topCat&&c.n?' <span class="weak">弱点</span>':''}<small>${c.sub}</small></span><span class="cp num">${c.p}<small>%</small></span>
       <span class="lbar"><span style="width:${c.p}%"></span></span></button>`).join('')}</div>`;
     html+=`<div class="label">敗因ランキング TOP5 ・ タップで練習ヒントとメモ</div><div class="flist">${fs.filter(f=>f.count).slice(0,5).map((f,i)=>fitemHTML(f,i,L)).join('')}</div>`;
+    html+=moveRankHTML(losses);
   }else{
     const c=cats.find(x=>x.id===lossCat);
     const fs=factorStats(losses,c.names);const hit=fs.filter(f=>f.count),none=fs.filter(f=>!f.count);
@@ -788,11 +904,11 @@ function renderHistory(){
     const d=new Date(r.t),day=`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
     if(day!==cur){if(cur)html+='</div>';html+=`<div class="day"><h2 class="num">${day}</h2>`;cur=day}
     const tm=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-    const tags=r.minus.map(t=>`<span class="m cat-${catOf(t)}">${esc(t)}</span>`).join('');
+    const tags=r.minus.map((t,i)=>`<span class="m cat-${catOf(t)}">${i===0&&r.minus.length>1?'★':''}${esc(t)}</span>`).join('');
     html+=`<div class="rec"><span class="badge ${r.result}">${r.result==='W'?'WIN':'LOSE'}</span>
       <span class="mt">${esc(r.my)} vs ${esc(r.opp)}</span>
       <button type="button" class="del" data-id="${esc(r.id)}">削除</button>
-      <span class="meta"><span class="num">${tm}</span>${r.player?' ・ '+esc(r.player):''}${r.memo?' ・ '+esc(r.memo):''}</span>
+      <span class="meta"><span class="num">${tm}</span>${r.player?' ・ '+esc(r.player):''}${r.move?' ・ 技：'+esc(r.move):''}${r.memo?' ・ '+esc(r.memo):''}</span>
       ${tags?`<div class="tg">${tags}</div>`:''}</div>`;
   });
   html+='</div>';v.innerHTML=html;bindSample(renderHistory);
@@ -822,7 +938,7 @@ async function copyText(txt,label){
 $('copyData').onclick=()=>copyText(JSON.stringify({...S,records:S.records.filter(r=>!r.sample)}),'データ');
 $('copyCsv').onclick=()=>{
   const q=s=>`"${String(s??'').replace(/"/g,'""')}"`;
-  const rows=[['日時','自キャラ','相手キャラ','相手プレイヤー','勝敗','敗因','敗因の分類','メモ']].concat(S.records.filter(r=>!r.sample).map(r=>{const d=new Date(r.t);return[`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`,r.my,r.opp,r.player,r.result==='W'?'勝':'負',r.minus.join('・'),[...new Set(r.minus.map(m=>CATS.find(c=>c.id===catOf(m)).name))].join('・'),r.memo]}));
+  const rows=[['日時','タイトル','自キャラ','相手キャラ','相手プレイヤー','勝敗','主因','敗因','敗因の分類','問題の技','メモ']].concat(S.records.filter(r=>!r.sample).map(r=>{const d=new Date(r.t);return[`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`,gameName(gameOf(r)),r.my,r.opp,r.player,r.result==='W'?'勝':'負',r.minus[0]||'',r.minus.join('・'),[...new Set(r.minus.map(m=>CATS.find(c=>c.id===catOf(m)).name))].join('・'),r.move||'',r.memo]}));
   copyText(rows.map(r=>r.map(q).join(',')).join('\n'),'CSV');
 };
 $('importData').onclick=()=>{
